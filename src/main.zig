@@ -1,20 +1,34 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+    try stdout.print("Running Frankenrepo...\n", .{});
 
-    try bw.flush(); // don't forget to flush!
+    const parsed = try readConfig(allocator, "./frankenfest.json");
+    defer parsed.deinit();
+
+    const config = parsed.value;
+    try stdout.print("{s}", .{config.name});
+
+    try bw.flush();
 }
+
+fn readConfig(allocator: Allocator, path: []const u8) !std.json.Parsed(Config) {
+    // TODO: handle error, like file not found
+    const data = try std.fs.cwd().readFileAlloc(allocator, path, 512);
+    defer allocator.free(data);
+    return std.json.parseFromSlice(Config, allocator, data, .{ .allocate = .alloc_always });
+}
+
+const Config = struct {
+    name: []const u8,
+};
 
 test "simple test" {
     var list = std.ArrayList(i32).init(std.testing.allocator);
