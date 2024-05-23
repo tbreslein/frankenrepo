@@ -1,33 +1,73 @@
 const std = @import("std");
+const debug = std.debug;
+const io = std.io;
 const Allocator = std.mem.Allocator;
+
+const clap = @import("clap");
 
 const frankenfest_filename = "frankenfest.json";
 
+const description = (
+    \\Frankenfest: A small cli utility to help manage multi-language monorepos
+    \\Version: 0.0.1
+    \\
+    \\
+);
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
     const allocator = gpa.allocator();
+
     const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    var stdout_buffer = std.io.bufferedWriter(stdout_file);
+    const stdout = stdout_buffer.writer();
 
     try stdout.print("Running Frankenrepo...\n", .{});
 
-    const parsed = readConfig(allocator, frankenfest_filename) catch |err| switch (err) {
+    const params = comptime clap.parseParamsComptime(
+        \\-h, --help       Display this help and exit
+        \\-C, --dir <str>  Directory to look for a frankenfest.json [Default: .]
+        \\<str>
+        \\
+    );
+
+    // init diagnostics
+    var diag = clap.Diagnostic{};
+    var res = clap.parse(clap.Help, &params, clap.parsers.default, .{
+        .diagnostic = &diag,
+        .allocator = allocator,
+    }) catch |err| {
+        diag.report(io.getStdErr().writer(), err) catch {};
+        return err;
+    };
+    defer res.deinit();
+
+    // TODO: Parse args into a struct
+    if (res.args.help != 0) {
+        const writer = io.getStdErr().writer();
+        try writer.writeAll(description);
+        return clap.help(writer, clap.Help, &params, .{});
+    }
+    if (res.args.dir) |d| debug.print("--dir = {s}\n", .{d});
+    for (res.positionals, 0..) |p, i| debug.print("positional_{} = {s}\n", .{ i, p });
+
+    const parsed_config = readConfig(allocator, frankenfest_filename) catch |err| switch (err) {
         error.FileNotFound => {
-            std.debug.panic("File not found: ./frankenfest.json", .{});
+            debug.print("File not found: ./frankenfest.json\n", .{});
             return err;
         },
         else => {
-            std.debug.panic("Unknow error: {}\n", .{err});
+            std.debug.panic("Unknown error: {}\n", .{err});
             return err;
         },
     };
-    defer parsed.deinit();
+    defer parsed_config.deinit();
+    const config = parsed_config.value;
 
-    const config = parsed.value;
-    try stdout.print("{s}\n", .{config.project_name});
+    try stdout.print("{}\n", .{config});
 
-    try bw.flush();
+    try stdout_buffer.flush();
 }
 
 fn readConfig(allocator: Allocator, path: []const u8) !std.json.Parsed(Config) {
