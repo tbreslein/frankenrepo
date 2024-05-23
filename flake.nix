@@ -13,6 +13,6 @@
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
     in {
-      devShell = pkgs.mkShell {buildInputs = with pkgs; [zig zls statix alejandra];};
+      devShell = pkgs.mkShell {buildInputs = with pkgs; [zig zls nil statix alejandra];};
     });
 }
