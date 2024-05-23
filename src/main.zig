@@ -52,7 +52,7 @@ pub fn main() !void {
     if (res.args.dir) |d| debug.print("--dir = {s}\n", .{d});
     for (res.positionals, 0..) |p, i| debug.print("positional_{} = {s}\n", .{ i, p });
 
-    const parsed_config = readConfig(allocator, frankenfest_filename) catch |err| switch (err) {
+    const parsed_fest = readConfig(allocator, frankenfest_filename) catch |err| switch (err) {
         error.FileNotFound => {
             debug.print("File not found: ./frankenfest.json\n", .{});
             return err;
@@ -62,22 +62,22 @@ pub fn main() !void {
             return err;
         },
     };
-    defer parsed_config.deinit();
-    const config = parsed_config.value;
+    defer parsed_fest.deinit();
+    const frankenfest = parsed_fest.value;
 
-    try stdout.print("{}\n", .{config});
+    try stdout.print("{}\n", .{frankenfest});
 
     try stdout_buffer.flush();
 }
 
-fn readConfig(allocator: Allocator, path: []const u8) !std.json.Parsed(Config) {
+fn readConfig(allocator: Allocator, path: []const u8) !std.json.Parsed(Frankenfest) {
     // TODO: handle error, like file not found
     const data = try std.fs.cwd().readFileAlloc(allocator, path, 512);
     defer allocator.free(data);
-    return std.json.parseFromSlice(Config, allocator, data, .{ .allocate = .alloc_always });
+    return std.json.parseFromSlice(Frankenfest, allocator, data, .{ .allocate = .alloc_always });
 }
 
-const Config = struct {
+const Frankenfest = struct {
     project_name: []const u8,
 };
 
