@@ -1,6 +1,8 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
+const frankenfest_filename = "frankenfest.json";
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
@@ -10,11 +12,20 @@ pub fn main() !void {
 
     try stdout.print("Running Frankenrepo...\n", .{});
 
-    const parsed = try readConfig(allocator, "./frankenfest.json");
+    const parsed = readConfig(allocator, frankenfest_filename) catch |err| switch (err) {
+        error.FileNotFound => {
+            std.debug.panic("File not found: ./frankenfest.json", .{});
+            return err;
+        },
+        else => {
+            std.debug.panic("Unknow error: {}\n", .{err});
+            return err;
+        },
+    };
     defer parsed.deinit();
 
     const config = parsed.value;
-    try stdout.print("{s}", .{config.project_name});
+    try stdout.print("{s}\n", .{config.project_name});
 
     try bw.flush();
 }
