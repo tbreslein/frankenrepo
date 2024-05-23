@@ -14,7 +14,7 @@ pub fn main() !void {
     defer parsed.deinit();
 
     const config = parsed.value;
-    try stdout.print("{s}", .{config.name});
+    try stdout.print("{s}", .{config.project_name});
 
     try bw.flush();
 }
@@ -27,7 +27,7 @@ fn readConfig(allocator: Allocator, path: []const u8) !std.json.Parsed(Config) {
 }
 
 const Config = struct {
-    name: []const u8,
+    project_name: []const u8,
 };
 
 test "simple test" {
