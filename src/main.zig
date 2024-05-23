@@ -81,6 +81,19 @@ const Frankenfest = struct {
     project_name: []const u8,
 };
 
+const Config = struct {
+    frankenfest_path: []const u8,
+    commands: []Commands,
+};
+
+const Commands = enum {
+    run_test,
+    run_build,
+    run_lint,
+    run_format,
+    run_proc,
+};
+
 test "simple test" {
     var list = std.ArrayList(i32).init(std.testing.allocator);
     defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
