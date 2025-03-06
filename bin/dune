@@ -1,0 +1,4 @@
+(executable
+ (public_name frankenrepo)
+ (name main)
+ (libraries frankenrepo))
